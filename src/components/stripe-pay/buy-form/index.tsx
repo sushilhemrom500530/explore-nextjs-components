@@ -26,14 +26,31 @@ export default function BuyForm() {
 
         const result = await buy({
             total_price: 36,
-            menu_list: [{
-                menu: "69a7b095ac5d16abfc9760df",
-                size: "medium",
-                total_quantity: 2
-            }],
+            menu_list: [
+                {
+                    menu: "69799c0d4780f3afafafa7c5",
+                    size: "medium",
+                    total_quantity: 2
+                },
+                {
+                    menu: "69798ccec574029ed95c3742",
+                    size: "medium",
+                    total_quantity: 1
+                },
+                {
+                    menu: "69798c214a879df924881ed3",
+                    size: "medium",
+                    total_quantity: 3
+                }
+            ],
             payment_method: paymentMethod,
             paymentMethodId: paymentMethod === "online" ? selectedCard : "",
             address: "Mohakhali, Dhaka",
+            payment_info: {
+                customer_name: "Sushil Hemrom",
+                customer_phone: "01711111111",
+                customer_address: "Mohakhali, Dhaka"
+            },
             note: "",
         });
 
