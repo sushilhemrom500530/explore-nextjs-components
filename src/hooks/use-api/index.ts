@@ -14,7 +14,7 @@ const useApi: AxiosInstance = axios.create({
 });
 useApi.interceptors.request.use(
     (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
-        const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5Nzg3ZjU3ODU1Mjc2OTg3OTZkOTk2MiIsImVtYWlsIjoiY3VzdG9tZXJAZGVtby5jb20iLCJyb2xlIjoiY3VzdG9tZXIiLCJpYXQiOjE3NzI4NTgyMDYsImV4cCI6MTc3Mjk0NDYwNn0.upydxejKtWc3Z6kA1zYdB55r237b7zFvtH7pd_3P8-k";
+        const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5N2Q5YzJiY2JjOWM2ZjViZDRiN2EyMiIsImVtYWlsIjoiY3VzdG9tZXIyQGRlbW8uY29tIiwicm9sZSI6ImN1c3RvbWVyIiwiaWF0IjoxNzcyODcyMDE4LCJleHAiOjE3NzI5NTg0MTh9.6_BRdgKfLi6QrtzkVKNVZWmDEXPx36VJoifJRztIVX0";
         // const token =
         //     document?.cookie
         //         ?.split("; ")

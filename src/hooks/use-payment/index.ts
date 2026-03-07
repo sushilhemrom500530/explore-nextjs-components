@@ -94,7 +94,11 @@ interface BuyProductPayload {
     paymentMethodId?: string;
     address: string;
     note?: string;
-    payment_info?: string;
+    payment_info?: {
+        customer_name?: string;
+        customer_phone?: string;
+        customer_address?: string;
+    };
     total_price: number;
 }
 
