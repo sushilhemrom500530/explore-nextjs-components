@@ -1,4 +1,10 @@
-import React, { Component, createRef } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import suneditor from "suneditor";
 import { en } from "suneditor/src/lang";
 import plugins from "suneditor/src/plugins";
@@ -6,86 +12,57 @@ import katex from "katex";
 import "suneditor/dist/css/suneditor.min.css";
 import "katex/dist/katex.min.css";
 import "./editor.css";
+import { IProps, IImageInfo } from "./interface";
+import Image from "next/image";
 
-// ✅ REMOVED direct codemirror imports — loaded dynamically in componentDidMount instead
+// forwardRef lets parent call getValue() via ref
+const Editor = forwardRef<{ getValue: () => string }, IProps>(
+  ({ contents, onBlur, onSave, onChange }, ref) => {
+    const txtArea = useRef<HTMLTextAreaElement>(null);
+    const editorRef = useRef<any>(null);
 
-interface Props {
-  contents?: string;
-  onBlur?: Function;
-  onSave: Function;
-}
+    const [imageList, setImageList] = useState<IImageInfo[]>([]);
+    const [selectedImages, setSelectedImages] = useState<number[]>([]);
+    const [imageSize, setImageSize] = useState("0KB");
 
-interface State {
-  imageList: any[];
-  selectedImages: any[];
-  imageSize: string;
-}
+    // ✅ Expose getValue() to parent via ref
+    useImperativeHandle(ref, () => ({
+      getValue: () => editorRef.current?.getContents() ?? "",
+    }));
 
-class Editor extends Component<Props, State> {
-  txtArea: any;
-  editor: any;
+    useEffect(() => {
+      if (!txtArea.current) return;
 
-  constructor(props: any) {
-    super(props);
-    this.txtArea = createRef();
-    this.state = {
-      imageList: [],
-      selectedImages: [],
-      imageSize: "0KB",
-    };
-  }
+      let editorInstance: any;
 
-  async componentDidMount() {
-    // ✅ Dynamically import codemirror only on client side to avoid SSR/export errors
-    const CodeMirror = (await import("codemirror")).default;
-    await import("codemirror/mode/htmlmixed/htmlmixed");
-    await import("codemirror/lib/codemirror.css");
+      const init = async () => {
+        // Dynamically load codemirror (browser-only)
+        const CodeMirror = (await import("codemirror")).default;
+        await import("codemirror/mode/htmlmixed/htmlmixed");
+        await import("codemirror/lib/codemirror.css");
+        
 
-    const editor: any = (this.editor = suneditor.create(this.txtArea.current, {
-      plugins: plugins,
-      lang: en,
-      callBackSave: (contents: string) => this.props.onSave(contents),
-      codeMirror: CodeMirror,
-      stickyToolbar: 0,
-      katex: katex,
-      width: "100%",
-      height: "auto",
-      minHeight: "400px",
-      value: this.props.contents,
-      // imageUploadUrl: `url`,
-      imageMultipleFile: true,
-      previewTemplate: `
-                <div style="width:auto; max-width:1136px; min-height:400px; margin:auto;">
-                {{contents}}
-                </div>
-            `,
-      buttonList: [
-        // default
-        ["undo", "redo"],
-        ["font", "fontSize", "formatBlock"],
-        ["paragraphStyle", "blockquote"],
-        ["bold", "underline", "italic", "strike", "subscript", "superscript"],
-        ["fontColor", "hiliteColor", "textStyle"],
-        ["removeFormat"],
-        ["outdent", "indent"],
-        ["align", "horizontalRule", "list", "lineHeight"],
-        ["table", "link", "image", "video"],
-        ["fullScreen", "showBlocks", "codeView"],
-        ["preview"],
-        ["save"],
-        // responsive
-        [
-          "%1161",
-          [
+        editorInstance = suneditor.create(txtArea.current!, {
+          plugins,
+          lang: en,
+          callBackSave: (c: string) => onSave(c),
+          codeMirror: CodeMirror,
+          stickyToolbar: 0,
+          katex,
+          width: "100%",
+          height: "auto",
+          minHeight: "400px",
+          value: contents,
+          imageMultipleFile: true,
+          previewTemplate: `
+            <div style="width:auto; max-width:1136px; min-height:400px; margin:auto;">
+              {{contents}}
+            </div>
+          `,
+          buttonList: [
             ["undo", "redo"],
-            [
-              ":p-Formats-default.more_paragraph",
-              "font",
-              "fontSize",
-              "formatBlock",
-              "paragraphStyle",
-              "blockquote",
-            ],
+            ["font", "fontSize", "formatBlock"],
+            ["paragraphStyle", "blockquote"],
             [
               "bold",
               "underline",
@@ -98,353 +75,352 @@ class Editor extends Component<Props, State> {
             ["removeFormat"],
             ["outdent", "indent"],
             ["align", "horizontalRule", "list", "lineHeight"],
-            ["-right", "save"],
+            ["table", "link", "image", "video"],
+            ["fullScreen", "showBlocks", "codeView"],
+            ["preview"],
+            ["save"],
             [
-              "-right",
-              ":i-Etc-default.more_vertical",
-              "fullScreen",
-              "showBlocks",
-              "codeView",
-              "preview",
+              "%1161",
+              [
+                ["undo", "redo"],
+                [
+                  ":p-Formats-default.more_paragraph",
+                  "font",
+                  "fontSize",
+                  "formatBlock",
+                  "paragraphStyle",
+                  "blockquote",
+                ],
+                [
+                  "bold",
+                  "underline",
+                  "italic",
+                  "strike",
+                  "subscript",
+                  "superscript",
+                ],
+                ["fontColor", "hiliteColor", "textStyle"],
+                ["removeFormat"],
+                ["outdent", "indent"],
+                ["align", "horizontalRule", "list", "lineHeight"],
+                ["-right", "save"],
+                [
+                  "-right",
+                  ":i-Etc-default.more_vertical",
+                  "fullScreen",
+                  "showBlocks",
+                  "codeView",
+                  "preview",
+                ],
+                [
+                  "-right",
+                  ":r-Table&Media-default.more_plus",
+                  "table",
+                  "link",
+                  "image",
+                  "video",
+                ],
+              ],
             ],
             [
-              "-right",
-              ":r-Table&Media-default.more_plus",
-              "table",
-              "link",
-              "image",
-              "video",
+              "%893",
+              [
+                ["undo", "redo"],
+                [
+                  ":p-Formats-default.more_paragraph",
+                  "font",
+                  "fontSize",
+                  "formatBlock",
+                  "paragraphStyle",
+                  "blockquote",
+                ],
+                ["bold", "underline", "italic", "strike"],
+                [
+                  ":t-Fonts-default.more_text",
+                  "subscript",
+                  "superscript",
+                  "fontColor",
+                  "hiliteColor",
+                  "textStyle",
+                ],
+                ["removeFormat"],
+                ["outdent", "indent"],
+                ["align", "horizontalRule", "list", "lineHeight"],
+                ["-right", "save"],
+                [
+                  "-right",
+                  ":i-Etc-default.more_vertical",
+                  "fullScreen",
+                  "showBlocks",
+                  "codeView",
+                  "preview",
+                ],
+                [
+                  "-right",
+                  ":r-Table&Media-default.more_plus",
+                  "table",
+                  "link",
+                  "image",
+                  "video",
+                ],
+              ],
+            ],
+            [
+              "%855",
+              [
+                ["undo", "redo"],
+                [
+                  ":p-Formats-default.more_paragraph",
+                  "font",
+                  "fontSize",
+                  "formatBlock",
+                  "paragraphStyle",
+                  "blockquote",
+                ],
+                [
+                  ":t-Fonts-default.more_text",
+                  "bold",
+                  "underline",
+                  "italic",
+                  "strike",
+                  "subscript",
+                  "superscript",
+                  "fontColor",
+                  "hiliteColor",
+                  "textStyle",
+                ],
+                ["removeFormat"],
+                ["outdent", "indent"],
+                ["align", "horizontalRule", "list", "lineHeight"],
+                [
+                  ":r-Table&Media-default.more_plus",
+                  "table",
+                  "link",
+                  "image",
+                  "video",
+                ],
+                ["-right", "save"],
+                [
+                  "-right",
+                  ":i-Etc-default.more_vertical",
+                  "fullScreen",
+                  "showBlocks",
+                  "codeView",
+                  "preview",
+                ],
+              ],
+            ],
+            [
+              "%563",
+              [
+                ["undo", "redo"],
+                [
+                  ":p-Formats-default.more_paragraph",
+                  "font",
+                  "fontSize",
+                  "formatBlock",
+                  "paragraphStyle",
+                  "blockquote",
+                ],
+                [
+                  ":t-Fonts-default.more_text",
+                  "bold",
+                  "underline",
+                  "italic",
+                  "strike",
+                  "subscript",
+                  "superscript",
+                  "fontColor",
+                  "hiliteColor",
+                  "textStyle",
+                ],
+                ["removeFormat"],
+                ["outdent", "indent"],
+                [
+                  ":e-List&Line-default.more_horizontal",
+                  "align",
+                  "horizontalRule",
+                  "list",
+                  "lineHeight",
+                ],
+                [
+                  ":r-Table&Media-default.more_plus",
+                  "table",
+                  "link",
+                  "image",
+                  "video",
+                ],
+                ["-right", "save"],
+                [
+                  "-right",
+                  ":i-Etc-default.more_vertical",
+                  "fullScreen",
+                  "showBlocks",
+                  "codeView",
+                  "preview",
+                ],
+              ],
+            ],
+            [
+              "%458",
+              [
+                ["undo", "redo"],
+                [
+                  ":p-Formats-default.more_paragraph",
+                  "font",
+                  "fontSize",
+                  "formatBlock",
+                  "paragraphStyle",
+                  "blockquote",
+                ],
+                [
+                  ":t-Fonts-default.more_text",
+                  "bold",
+                  "underline",
+                  "italic",
+                  "strike",
+                  "subscript",
+                  "superscript",
+                  "fontColor",
+                  "hiliteColor",
+                  "textStyle",
+                  "removeFormat",
+                ],
+                [
+                  ":e-List&Line-default.more_horizontal",
+                  "outdent",
+                  "indent",
+                  "align",
+                  "horizontalRule",
+                  "list",
+                  "lineHeight",
+                ],
+                [
+                  ":r-Table&Media-default.more_plus",
+                  "table",
+                  "link",
+                  "image",
+                  "video",
+                ],
+                ["-right", "save"],
+                [
+                  "-right",
+                  ":i-Etc-default.more_vertical",
+                  "fullScreen",
+                  "showBlocks",
+                  "codeView",
+                  "preview",
+                ],
+              ],
             ],
           ],
-        ],
-        [
-          "%893",
-          [
-            ["undo", "redo"],
-            [
-              ":p-Formats-default.more_paragraph",
-              "font",
-              "fontSize",
-              "formatBlock",
-              "paragraphStyle",
-              "blockquote",
-            ],
-            ["bold", "underline", "italic", "strike"],
-            [
-              ":t-Fonts-default.more_text",
-              "subscript",
-              "superscript",
-              "fontColor",
-              "hiliteColor",
-              "textStyle",
-            ],
-            ["removeFormat"],
-            ["outdent", "indent"],
-            ["align", "horizontalRule", "list", "lineHeight"],
-            ["-right", "save"],
-            [
-              "-right",
-              ":i-Etc-default.more_vertical",
-              "fullScreen",
-              "showBlocks",
-              "codeView",
-              "preview",
-            ],
-            [
-              "-right",
-              ":r-Table&Media-default.more_plus",
-              "table",
-              "link",
-              "image",
-              "video",
-            ],
-          ],
-        ],
-        [
-          "%855",
-          [
-            ["undo", "redo"],
-            [
-              ":p-Formats-default.more_paragraph",
-              "font",
-              "fontSize",
-              "formatBlock",
-              "paragraphStyle",
-              "blockquote",
-            ],
-            [
-              ":t-Fonts-default.more_text",
-              "bold",
-              "underline",
-              "italic",
-              "strike",
-              "subscript",
-              "superscript",
-              "fontColor",
-              "hiliteColor",
-              "textStyle",
-            ],
-            ["removeFormat"],
-            ["outdent", "indent"],
-            ["align", "horizontalRule", "list", "lineHeight"],
-            [
-              ":r-Table&Media-default.more_plus",
-              "table",
-              "link",
-              "image",
-              "video",
-            ],
-            ["-right", "save"],
-            [
-              "-right",
-              ":i-Etc-default.more_vertical",
-              "fullScreen",
-              "showBlocks",
-              "codeView",
-              "preview",
-            ],
-          ],
-        ],
-        [
-          "%563",
-          [
-            ["undo", "redo"],
-            [
-              ":p-Formats-default.more_paragraph",
-              "font",
-              "fontSize",
-              "formatBlock",
-              "paragraphStyle",
-              "blockquote",
-            ],
-            [
-              ":t-Fonts-default.more_text",
-              "bold",
-              "underline",
-              "italic",
-              "strike",
-              "subscript",
-              "superscript",
-              "fontColor",
-              "hiliteColor",
-              "textStyle",
-            ],
-            ["removeFormat"],
-            ["outdent", "indent"],
-            [
-              ":e-List&Line-default.more_horizontal",
-              "align",
-              "horizontalRule",
-              "list",
-              "lineHeight",
-            ],
-            [
-              ":r-Table&Media-default.more_plus",
-              "table",
-              "link",
-              "image",
-              "video",
-            ],
-            ["-right", "save"],
-            [
-              "-right",
-              ":i-Etc-default.more_vertical",
-              "fullScreen",
-              "showBlocks",
-              "codeView",
-              "preview",
-            ],
-          ],
-        ],
-        [
-          "%458",
-          [
-            ["undo", "redo"],
-            [
-              ":p-Formats-default.more_paragraph",
-              "font",
-              "fontSize",
-              "formatBlock",
-              "paragraphStyle",
-              "blockquote",
-            ],
-            [
-              ":t-Fonts-default.more_text",
-              "bold",
-              "underline",
-              "italic",
-              "strike",
-              "subscript",
-              "superscript",
-              "fontColor",
-              "hiliteColor",
-              "textStyle",
-              "removeFormat",
-            ],
-            [
-              ":e-List&Line-default.more_horizontal",
-              "outdent",
-              "indent",
-              "align",
-              "horizontalRule",
-              "list",
-              "lineHeight",
-            ],
-            [
-              ":r-Table&Media-default.more_plus",
-              "table",
-              "link",
-              "image",
-              "video",
-            ],
-            ["-right", "save"],
-            [
-              "-right",
-              ":i-Etc-default.more_vertical",
-              "fullScreen",
-              "showBlocks",
-              "codeView",
-              "preview",
-            ],
-          ],
-        ],
-      ],
-    }));
+        });
 
-    editor.onBlur = () => {
-      if (typeof this.props.onBlur === "function") this.props.onBlur();
+        editorRef.current = editorInstance;
+
+        editorInstance.onBlur = () => {
+          if (typeof onBlur === "function") onBlur();
+        };
+
+        editorInstance.onChange = (c: string) => {
+          if (typeof onChange === "function") onChange(c);
+        };
+
+        editorInstance.onImageUpload = handleImageUpload;
+      };
+
+      init();
+
+      return () => {
+        editorInstance?.destroy();
+        editorRef.current = null;
+      };
+    }, []); // run once on mount
+
+    useEffect(() => {
+      if (!editorRef.current) return;
+      editorRef.current.setContents(contents ?? "");
+      editorRef.current.core.history.reset(true);
+    }, [contents]);
+
+    const findIndex = (arr: any[], index: number): number => {
+      let idx = -1;
+      arr.some((a, i) => {
+        if ((typeof a === "number" ? a : a.index) === index) {
+          idx = i;
+          return true;
+        }
+        return false;
+      });
+      return idx;
     };
 
-    editor.onImageUpload = this.imageUpload.bind(this);
-    // editor.onVideoUpload = videoUpload;
-  }
+    const handleImageUpload = (
+      _targetElement: Element,
+      index: number,
+      state: string,
+      imageInfo: any,
+      remainingFilesCount: number,
+    ) => {
+      setImageList((prev) => {
+        let updated = [...prev];
+        if (state === "delete") {
+          updated.splice(findIndex(updated, index), 1);
+        } else if (state === "create") {
+          updated.push(imageInfo);
+        }
 
-  componentDidUpdate(prevProps: any) {
-    if (this.props.contents !== prevProps.contents) {
-      this.editor.setContents(this.props.contents);
-      this.editor.core.history.reset(true);
-    }
-  }
+        if (remainingFilesCount === 0) {
+          const totalSize = updated.reduce(
+            (sum, img) => sum + Number((img.size / 1000).toFixed(1)),
+            0,
+          );
+          setImageSize(totalSize.toFixed(1) + "KB");
+        }
 
-  componentWillUnmount() {
-    if (this.editor) this.editor.destroy();
-  }
-
-  // ✅ Call this from a parent ref to get the current HTML contents
-  getValue(): string {
-    return this.editor ? this.editor.getContents() : "";
-  }
-
-  // image, video
-  findIndex(arr: any[], index: number) {
-    let idx = -1;
-
-    arr.some(function (a, i) {
-      if ((typeof a === "number" ? a : a.index) === index) {
-        idx = i;
-        return true;
-      }
-      return false;
-    });
-
-    return idx;
-  }
-
-  imageUpload(
-    targetElement: Element,
-    index: number,
-    state: string,
-    imageInfo: Record<string, string>,
-    remainingFilesCount: number,
-  ) {
-    if (state === "delete") {
-      this.state.imageList.splice(
-        this.findIndex(this.state.imageList, index),
-        1,
-      );
-      this.setState({
-        imageList: this.state.imageList,
+        return updated;
       });
-    } else {
-      if (state === "create") {
-        const imageList = this.state.imageList;
-        imageList.push(imageInfo);
-        this.setState({
-          imageList: imageList,
-        });
-      } else {
-        // update
-        //
+    };
+
+    const selectImage = (
+      evt: React.MouseEvent,
+      type: string,
+      index: number,
+    ) => {
+      evt.preventDefault();
+      evt.stopPropagation();
+      imageList[findIndex(imageList, index)][type]();
+    };
+
+    const checkImage = (index: number) => {
+      setSelectedImages((prev) => {
+        const idx = findIndex(prev, index);
+        return idx > -1 ? prev.filter((_, i) => i !== idx) : [...prev, index];
+      });
+    };
+
+    const deleteCheckedImages = () => {
+      const imagesInfo = editorRef.current?.getImagesInfo() ?? [];
+      for (let i = 0; i < imagesInfo.length; i++) {
+        if (selectedImages.indexOf(imagesInfo[i].index) > -1) {
+          imagesInfo[i].delete();
+          i--;
+        }
       }
-    }
+      setSelectedImages([]);
+    };
 
-    if (remainingFilesCount === 0) {
-      this.setImageList();
-    }
-  }
-
-  setImageList() {
-    const imageList = this.state.imageList;
-    let size = 0;
-
-    for (let i = 0; i < imageList.length; i++) {
-      size += Number((imageList[i].size / 1000).toFixed(1));
-    }
-
-    this.setState({
-      imageSize: size.toFixed(1) + "KB",
-    });
-  }
-
-  selectImage(evt: any, type: string, index: number) {
-    evt.preventDefault();
-    evt.stopPropagation();
-    this.state.imageList[this.findIndex(this.state.imageList, index)][type]();
-  }
-
-  checkImage(index: number) {
-    const selectedImages = this.state.selectedImages;
-    const currentImageIdx = this.findIndex(selectedImages, index);
-
-    if (currentImageIdx > -1) {
-      selectedImages.splice(currentImageIdx, 1);
-    } else {
-      selectedImages.push(index);
-    }
-
-    this.setState({
-      selectedImages: selectedImages,
-    });
-  }
-
-  deleteCheckedImages() {
-    const iamgesInfo = this.editor.getImagesInfo();
-
-    for (let i = 0; i < iamgesInfo.length; i++) {
-      if (
-        this.state.selectedImages.indexOf(iamgesInfo[i].index as number) > -1
-      ) {
-        iamgesInfo[i].delete();
-        i--;
+    const fileUploadToEditor = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files) {
+        editorRef.current?.insertImage(e.target.files);
+        e.target.value = "";
       }
-    }
+    };
 
-    this.setState({
-      selectedImages: [],
-    });
-  }
-
-  fileUploadToEditor(e: any) {
-    if (e.target.files) {
-      this.editor.insertImage(e.target.files);
-      e.target.value = "";
-    }
-  }
-
-  render() {
     return (
       <div>
-        <textarea ref={this.txtArea} />
+        <textarea ref={txtArea} />
+
         <div className="component-list">
           <div className="file-list-info">
             <span>Attach files</span>
@@ -454,72 +430,65 @@ class Editor extends Component<Props, State> {
             <input
               type="file"
               id="files_upload"
-              accept=".jpg, .jpeg, .png, .ico, .tif, .tiff, .gif, .bmp, .raw"
+              accept=".jpg,.jpeg,.png,.ico,.tif,.tiff,.gif,.bmp,.raw"
               multiple
               className="files-text files-input"
-              onChange={(e: any) => this.fileUploadToEditor(e)}
+              onChange={fileUploadToEditor}
             />
             <span id="image_size" className="total-size text-small-2">
-              {this.state.imageSize}
+              {imageSize}
             </span>
             <button
               className="btn btn-md btn-danger"
               id="image_remove"
-              disabled={this.state.selectedImages.length === 0}
-              onClick={() => this.deleteCheckedImages()}
+              disabled={selectedImages.length === 0}
+              onClick={deleteCheckedImages}
             >
               삭제
             </button>
           </div>
+
           <div className="file-list">
             <ul id="image_list">
-              {this.state.imageList.map((v, i) => {
-                return (
-                  <li
-                    key={i}
-                    onClick={() => this.checkImage(v.index)}
-                    className={
-                      this.state.selectedImages.includes(v.index)
-                        ? "checked"
-                        : ""
-                    }
+              {imageList.map((v, i) => (
+                <li
+                  key={i}
+                  onClick={() => checkImage(v.index)}
+                  className={selectedImages.includes(v.index) ? "checked" : ""}
+                >
+                  <div>
+                    <div className="image-wrapper">
+                      <Image src={v.src} alt="" width={200} height={200} />
+                    </div>
+                  </div>
+                  <a
+                    onClick={(evt) => selectImage(evt, "select", v.index)}
+                    className="image-size"
                   >
-                    <div>
-                      <div className="image-wrapper">
-                        <img src={v.src} />
-                      </div>
-                    </div>
-                    <a
-                      onClick={(evt: any) =>
-                        this.selectImage(evt, "select", v.index)
-                      }
-                      className="image-size"
+                    {(v.size / 1000).toFixed(1)}KB
+                  </a>
+                  <div className="image-check">
+                    <svg
+                      aria-hidden="true"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 512 512"
                     >
-                      {(v.size / 1000).toFixed(1)}KB
-                    </a>
-                    <div className="image-check">
-                      <svg
-                        aria-hidden="true"
-                        role="img"
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 512 512"
-                        data-fa-i2svg=""
-                      >
-                        <path
-                          fill="currentColor"
-                          d="M173.898 439.404l-166.4-166.4c-9.997-9.997-9.997-26.206 0-36.204l36.203-36.204c9.997-9.998 26.207-9.998 36.204 0L192 312.69 432.095 72.596c9.997-9.997 26.207-9.997 36.204 0l36.203 36.204c9.997 9.997 9.997 26.206 0 36.204l-294.4 294.401c-9.998 9.997-26.207 9.997-36.204-.001z"
-                        ></path>
-                      </svg>
-                    </div>
-                  </li>
-                );
-              })}
+                      <path
+                        fill="currentColor"
+                        d="M173.898 439.404l-166.4-166.4c-9.997-9.997-9.997-26.206 0-36.204l36.203-36.204c9.997-9.998 26.207-9.998 36.204 0L192 312.69 432.095 72.596c9.997-9.997 26.207-9.997 36.204 0l36.203 36.204c9.997 9.997 9.997 26.206 0 36.204l-294.4 294.401c-9.998 9.997-26.207 9.997-36.204-.001z"
+                      />
+                    </svg>
+                  </div>
+                </li>
+              ))}
             </ul>
           </div>
         </div>
       </div>
     );
-  }
-}
+  },
+);
+
+Editor.displayName = "Editor";
 
 export default Editor;
