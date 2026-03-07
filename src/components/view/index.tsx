@@ -1,10 +1,11 @@
 "use client";
 import { useRef } from "react";
 import dynamic from "next/dynamic";
+import PaymentPage from "../stripe-pay/payment";
 
 const Editor = dynamic(() => import("../text-editor"));
 
-export default function PostEdit() {
+export default function ViewAllContent() {
   const editorInstanceRef = useRef<any>(null);
 
   const handleSubmit = () => {
@@ -14,7 +15,7 @@ export default function PostEdit() {
 
   return (
     <div>
-      <Editor
+      {/* <Editor
         ref={editorInstanceRef}
         onSave={(contents: string) => console.log(contents)}
       />
@@ -23,7 +24,8 @@ export default function PostEdit() {
         className="bg-black text-white px-4 py-2 rounded cursor-pointer"
       >
         Submit
-      </button>
+      </button> */}
+      <PaymentPage />
     </div>
   );
 }
